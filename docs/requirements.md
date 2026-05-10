@@ -196,19 +196,19 @@ type guard 로 코드를 단일 경로 추출한다.
 
 #### POST /jobs/:id/run (명세 외 추가)
 
-수동 실행 트리거. 다음 스케줄러 tick을 기다리지 않고 즉시 클레임한다.
+수동 실행 트리거. 다음 스케줄러 tick을 기다리지 않고 즉시 점유한다.
 
 **규칙**
 
-1. PENDING + `deletedAt is null` + 미클레임일 때만 허용
+1. PENDING + `deletedAt is null` + 미점유일 때만 허용
 2. 위반 시 `409 JOB_ALREADY_CLAIMED` 또는 `JOB_NOT_EDITABLE`
-3. 클레임은 스케줄러와 **동일한 mutex** (`JobsMutex` provider) 를 통과 → lost update / 동시 클레임 방지
-4. 클레임 시 `triggeredBy = MANUAL` 로 set
+3. 점유은 스케줄러와 **동일한 mutex** (`JobsMutex` provider) 를 통과 → lost update / 동시 점유 방지
+4. 점유 시 `triggeredBy = MANUAL` 로 set
 5. 처리 자체(sleep + DONE/FAILED)는 비동기로 진행. 응답은 즉시 반환
 
 **Response 200** — `{ data: { ...job, status: "PROCESSING", triggeredBy: "MANUAL" } }`
 
-> 처리 자체는 비동기지만 클레임 결과는 동기 응답이므로, 다른 엔드포인트와 일관되게 200 으로 통일한다.
+> 처리 자체는 비동기지만 점유 결과는 동기 응답이므로, 다른 엔드포인트와 일관되게 200 으로 통일한다.
 
 > **명세 외 추가 사유**: 수동·자동 두 트리거 경로의 데이터 무결성을 같은 mutex로
 > 검증 가능하게 하여 동시성 평가 포인트를 시연 가능하게 만든다. README에 추가 사유와
@@ -222,7 +222,7 @@ type guard 로 코드를 단일 경로 추출한다.
 | 조회·수정·수동 실행 성공 | 200 |
 | 입력 형식 오류 (validation) | 400 |
 | 존재하지 않음 | 404 |
-| 비즈니스 규칙 위반 (전이/편집/이미 취소·클레임) | 409 |
+| 비즈니스 규칙 위반 (전이/편집/이미 취소·점유) | 409 |
 | 서버 내부 오류 (예상 못 한 예외) | 500 |
 
 ### 2.6 유효성 검사
@@ -268,8 +268,8 @@ type guard 로 코드를 단일 경로 추출한다.
 |---|---|---|
 | 주기 | `@Cron('0 * * * * *')` | 매분 0초 |
 | 최초 실행 | `@Timeout(5000)` | 부팅 후 5초 — 평가 시연성 ↑ |
-| 배치 크기 | `5` | 한 tick 당 클레임 최대 수 |
-| 클레임 정렬 | `createdAt asc` | FIFO |
+| 배치 크기 | `5` | 한 tick 당 점유 최대 수 |
+| 점유 정렬 | `createdAt asc` | FIFO |
 | 처리 시뮬레이션 | sleep 1~3초 (랜덤) | PROCESSING 상태가 의미 있는 시간 동안 노출 |
 | 실패율 | `10%` (`RandomService.next() < 0.1`) | FAILED 상태 시연 |
 | 재시도 | 없음 | FAILED 영구 종결 |
@@ -301,7 +301,7 @@ controller
   └─ return 200
 ```
 
-스케줄러 클레임과 같은 `processOne` 함수를 공유한다.
+스케줄러 점유과 같은 `processOne` 함수를 공유한다.
 
 ---
 
@@ -337,7 +337,7 @@ write jobs
 
 ### 4.3 read-modify-write 패턴
 
-모든 PATCH · 스케줄러 클레임 · 수동 실행 클레임은 `JobsMutex.runExclusive` 안에서
+모든 PATCH · 스케줄러 점유 · 수동 실행 점유은 `JobsMutex.runExclusive` 안에서
 read · 검증 · write 를 완료한다.
 
 ```ts
@@ -365,9 +365,9 @@ async patch(id: string, dto: PatchJobDto): Promise<Job> {
 | 시나리오 | 결과 |
 |---|---|
 | 동시 PATCH (같은 ID 두 건) | 직렬화. 두 번째는 첫 번째 결과 위에서 진행 |
-| 스케줄러 클레임 ↔ PATCH | 클레임 먼저 → PATCH 는 `JOB_NOT_EDITABLE`. PATCH 먼저 → 다음 tick 클레임 시 갱신된 상태 위에서 진행 |
-| 동시 cancel + 클레임 | cancel 먼저 → 클레임 후보에서 제외. 클레임 먼저 → cancel 은 `JOB_NOT_EDITABLE` |
-| 수동 실행 + 스케줄러 동시 클레임 | 같은 mutex 통과 → 한 쪽만 성공, 다른 쪽 `JOB_ALREADY_CLAIMED` |
+| 스케줄러 점유 ↔ PATCH | 점유 먼저 → PATCH 는 `JOB_NOT_EDITABLE`. PATCH 먼저 → 다음 tick 점유 시 갱신된 상태 위에서 진행 |
+| 동시 cancel + 점유 | cancel 먼저 → 점유 후보에서 제외. 점유 먼저 → cancel 은 `JOB_NOT_EDITABLE` |
+| 수동 실행 + 스케줄러 동시 점유 | 같은 mutex 통과 → 한 쪽만 성공, 다른 쪽 `JOB_ALREADY_CLAIMED` |
 | 1분 안에 tick 미종료 | `running` flag 로 다음 tick skip |
 | 멀티 프로세스 환경 | **본 전략 보호 불가** — 외부 락 (Redis Redlock 등) 또는 낙관적 락 필요. README 회고 |
 
@@ -462,7 +462,7 @@ NestJS 의 cross-cutting 메커니즘에 비기능 관심사를 위임하여 컨
 |---|---|---|
 | 단위 | Jest | 도메인 로직 (상태 전이, 검색 필터링), `JobsMutex` 직렬화, Repository CRUD, 헬퍼 |
 | e2e | `@nestjs/testing` + `supertest` | 6개 엔드포인트 정상·에러 케이스, 응답 구조 일관성 |
-| 동시성 | `Promise.all` 부하 시뮬레이션 | 동시 PATCH, 클레임 ↔ PATCH, 동시 cancel + 클레임, 수동 실행 ↔ 스케줄러 |
+| 동시성 | `Promise.all` 부하 시뮬레이션 | 동시 PATCH, 점유 ↔ PATCH, 동시 cancel + 점유, 수동 실행 ↔ 스케줄러 |
 | 스케줄러 | 메소드 직접 호출 | `tick()` 직접 호출로 claim · 처리 · marking 흐름 검증. Cron 시간 모킹 회피 |
 
 ### 7.2 격리
@@ -477,7 +477,7 @@ NestJS 의 cross-cutting 메커니즘에 비기능 관심사를 위임하여 컨
 
 1. 단위 — 상태 전이, 검색 필터, mutex 직렬화
 2. e2e — 정상 플로우 (POST → GET → PATCH → cancel → run)
-3. 동시성 — 핵심 두 시나리오 (PATCH ↔ 스케줄러 클레임, 동시 PATCH)
+3. 동시성 — 핵심 두 시나리오 (PATCH ↔ 스케줄러 점유, 동시 PATCH)
 4. 스케줄러 — `tick()` 직접 호출 검증
 
 작성하지 못한 케이스는 README 회고에 기재.

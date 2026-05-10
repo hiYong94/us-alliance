@@ -52,13 +52,13 @@
 
 ```ts
 /**
- * PENDING 상태의 작업을 size 개까지 클레임하여 PROCESSING 으로 전환한다
+ * PENDING 상태의 작업을 size 개까지 점유하여 PROCESSING 으로 전환한다
  *
- * 클레임은 JobsMutex 안에서 수행되므로 다른 요청 · tick 과의 lost update 가 방지된다
+ * 점유은 JobsMutex 안에서 수행되므로 다른 요청 · tick 과의 lost update 가 방지된다
  *
- * @param size 한 번에 클레임할 최대 작업 수 (FIFO, createdAt asc)
- * @param triggeredBy 클레임 트리거 출처 — 처리 결과 추적에 사용
- * @returns 클레임된 작업 목록 (status=PROCESSING, triggeredBy set)
+ * @param size 한 번에 점유할 최대 작업 수 (FIFO, createdAt asc)
+ * @param triggeredBy 점유 트리거 출처 — 처리 결과 추적에 사용
+ * @returns 점유된 작업 목록 (status=PROCESSING, triggeredBy set)
  */
 async claimPending(size: number, triggeredBy: TriggerSource): Promise<Job[]>;
 ```
@@ -131,7 +131,7 @@ async tick(): Promise<void> {
   if (this.running) return;
   this.running = true;
   try {
-    // 1. PENDING 작업을 BATCH_SIZE 만큼 클레임 (JobsMutex 통과)
+    // 1. PENDING 작업을 BATCH_SIZE 만큼 점유 (JobsMutex 통과)
     const jobs = await this.service.claimPending(BATCH_SIZE, TriggerSource.SCHEDULER);
 
     // 2. 병렬로 처리 시뮬레이션 — 부분 실패 격리를 위해 allSettled
@@ -220,7 +220,7 @@ lines.map((line) => JSON.parse(line));
   - **멤버명과 값 모두 UPPER_SNAKE_CASE 로 통일** — 멤버는 상수의 의미, 값은
     API 표면(검색 쿼리 · JSON · 로그) 에 노출되어 시인성 확보
   - 각 멤버에 1 줄 JSDoc 으로 도메인 의미를 명시
-    (`/** 처리 대기 — 스케줄러가 클레임할 후보 */`)
+    (`/** 처리 대기 — 스케줄러가 점유할 후보 */`)
   - Swagger 스키마 자동 매핑, `@ApiProperty({ enum: ..., enumName: ... })` 와의 정합성에 유리
   - 단일 위치에서 값 추가 · 변경 가능 (string literal 분산 회피)
 

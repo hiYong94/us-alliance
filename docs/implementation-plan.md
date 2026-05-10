@@ -61,7 +61,7 @@
 | # | Branch | 목적 | 주요 변경 | 의존 |
 |---|---|---|---|---|
 | 13 | `feat/jobs-repository-with-mutex` | 영속성(CRUD) + 단일 mutex provider (+ spec) | `src/jobs/jobs.repository.ts` (CRUD only — `ConfigService` 에서 `JOBS_DB_PATH` 조회), `src/jobs/jobs.mutex.ts` (`JobsMutex.runExclusive`) (+ spec — claim 직렬화, lost update 차단) | 4, 5 |
-| 14 | `feat/jobs-service` | 도메인 로직 (+ spec) | `src/jobs/jobs.service.ts` (+ spec — `JobsMutex.runExclusive` 안에서 검증 · 클레임 · 상태 전이, 검색 필터) | 7, 8, 13 |
+| 14 | `feat/jobs-service` | 도메인 로직 (+ spec) | `src/jobs/jobs.service.ts` (+ spec — `JobsMutex.runExclusive` 안에서 검증 · 점유 · 상태 전이, 검색 필터) | 7, 8, 13 |
 | 15 | `feat/jobs-controller-and-swagger` | 6 엔드포인트 + 응답 wrapper + `@ApiOperation`/`@ApiResponse` + `@ApiExtraModels` 등록 | `src/jobs/jobs.controller.ts`, `jobs.module.ts` 등록 | 14 |
 | 16 | `feat/global-bootstrap` | main.ts 전역 셋업 | `src/main.ts` — `ValidationPipe({whitelist, forbidNonWhitelisted, transform})`, `AllExceptionsFilter`, `LoggingInterceptor`, `TraceContextMiddleware`, Swagger `/docs` mount, `PORT` 는 `ConfigService` 조회 | 11, 12, 15 |
 
