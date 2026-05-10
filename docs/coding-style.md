@@ -169,6 +169,45 @@ JobAlreadyCanceledException
 JobAlreadyClaimedException
 ```
 
+### 5.1 함수형 콜백 변수명 — 축약 회피
+
+`Array.prototype.{map, filter, find, ...}` 같은 함수형 메소드의 콜백에서 변수명을
+무의미하게 축약하지 않는다 — 도메인 의미가 드러나는 명시적 이름을 사용한다.
+
+**Bad — 의미 추론을 강요**
+
+```ts
+jobs.find((j) => j.id === id);
+items.map((i) => i.value);
+list.filter((x) => x.active);
+lines.map((l) => JSON.parse(l));
+```
+
+**Good — 도메인이 한눈에 읽힘**
+
+```ts
+jobs.find((job) => job.id === id);
+items.map((item) => item.value);
+list.filter((task) => task.active);
+lines.map((line) => JSON.parse(line));
+```
+
+함수형 체인은 한 줄에 여러 단계가 흐르므로 단축 변수명이 누적되면 추론 비용이
+빠르게 누적된다. 변수명이 도메인 어휘를 그대로 드러내면 읽는 사람이 코드와 도메인
+문서를 동시에 매핑할 필요가 없다.
+
+**예외** — 외부에서 받는 매개변수의 *원래 타입명이 길어 가독성을 해치는 경우* 만
+관용적 축약을 허용한다.
+
+| 축약 | 원래 타입 |
+|---|---|
+| `req` | `Request` (Express) |
+| `res` | `Response` (Express) |
+| `ctx` | `ExecutionContext` / `ArgumentsHost` (NestJS) |
+| `resolve` / `reject` | `Promise` 의 두 콜백 인자 (이름 자체가 관용) |
+
+이 외의 단일 문자 변수(`j`, `x`, `e`, `v`, `k`, `l` 등) 는 사용하지 않는다.
+
 ---
 
 ## 6. TypeScript
@@ -187,7 +226,48 @@ JobAlreadyClaimedException
 
 ---
 
-## 7. 디렉토리 · 파일 구조
+## 7. 제어 흐름
+
+### 7.1 모든 제어 블록은 `{ }` 로 감싼다
+
+`if` / `else` / `for` / `while` 등은 본문이 한 줄이라도 항상 brace 와 줄바꿈을 적용한다.
+ESLint `curly: ['error', 'all']` 룰로 강제한다.
+
+**Bad**
+
+```ts
+if (typeof res === 'string') return res;
+if (!user) throw new UserNotFoundException();
+for (const job of jobs) total += job.cost;
+```
+
+**Good**
+
+```ts
+if (typeof res === 'string') {
+  return res;
+}
+if (!user) {
+  throw new UserNotFoundException();
+}
+for (const job of jobs) {
+  total += job.cost;
+}
+```
+
+이유:
+- 본문 추가 시 brace 누락 버그(`if (cond) doA(); doB();` 가 한 줄로 합쳐 보이는 문제) 차단
+- diff 가 한 줄에 두 변경(조건 + 본문)을 섞지 않음 → 코드 리뷰 시 의도 명확
+- 단일 분기/다중 분기 간 형식 일관성 유지
+
+### 7.2 ternary 표현식은 본 룰의 적용 대상이 아니다
+
+`a ? b : c` 같은 *표현식* ternary 는 위 룰과 별개로 자유롭게 사용 가능.
+단, 중첩 ternary(`a ? b : c ? d : e`) 는 가독성을 해치므로 `if/else` 블록으로 풀어 쓴다.
+
+---
+
+## 8. 디렉토리 · 파일 구조
 
 NestJS 표준 모듈 구조를 따른다.
 
@@ -239,7 +319,7 @@ src/
 
 ---
 
-## 8. Lint · Format
+## 9. Lint · Format
 
 코드 스타일은 도구로 강제한다 — 가이드 준수 여부를 사람 검토에 맡기지 않는다.
 
@@ -255,6 +335,9 @@ src/
 - `typescript-eslint` 의 type-aware 룰 사용 (`recommendedTypeChecked`)
 - `eslint-plugin-prettier/recommended` 로 포매팅 위반을 lint error 로 승격
 - `eslint-plugin-unused-imports` 로 미사용 import 제거 강제
+- `curly: ['error', 'all']` — 모든 제어 블록에 `{ }` 강제 (§7.1)
+- `no-unsafe-call` · `no-unsafe-member-access` 는 전역 off (사용자 철학:
+  any 타입 허용 + 로직에서 any 회피는 self-discipline)
 - 테스트 파일은 일부 unsafe-* 룰 완화 (실용성)
 
 **스크립트**
@@ -265,7 +348,7 @@ CI 도입 시 `npm run lint` 와 `npm run build` 를 통과 게이트로 둔다.
 
 ---
 
-## 9. 적용 범위 · 예외
+## 10. 적용 범위 · 예외
 
 이 가이드는 본 과제 코드 전체에 적용된다. 외부 라이브러리에서 import 한 코드에는
 적용되지 않는다. 예외가 필요한 경우 해당 위치에 1 줄 주석으로 *왜 예외인지* 명시한다.

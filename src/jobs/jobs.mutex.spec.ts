@@ -8,12 +8,12 @@ describe('JobsMutex', () => {
     await Promise.all([
       mutex.runExclusive(async () => {
         log.push('a-start');
-        await new Promise((r) => setTimeout(r, 30));
+        await new Promise((resolve) => setTimeout(resolve, 30));
         log.push('a-end');
       }),
       mutex.runExclusive(async () => {
         log.push('b-start');
-        await new Promise((r) => setTimeout(r, 10));
+        await new Promise((resolve) => setTimeout(resolve, 10));
         log.push('b-end');
       }),
     ]);

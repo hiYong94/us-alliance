@@ -153,12 +153,12 @@ describe('JobsMutex + JobsRepository 통합 — lost update 방지', () => {
     await Promise.all([
       mutex.runExclusive(async () => {
         const current = await repo.findOne('race');
-        await new Promise((r) => setTimeout(r, 20));
+        await new Promise((resolve) => setTimeout(resolve, 20));
         await repo.update('race', { ...current!, title: 'updated-by-a' });
       }),
       mutex.runExclusive(async () => {
         const current = await repo.findOne('race');
-        await new Promise((r) => setTimeout(r, 5));
+        await new Promise((resolve) => setTimeout(resolve, 5));
         await repo.update('race', { ...current!, description: 'updated-by-b' });
       }),
     ]);
