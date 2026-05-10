@@ -15,8 +15,7 @@ export class SearchJobsQuery {
   title?: string;
 
   @ApiProperty({
-    description:
-      '상태 다중 필터 — 콤마 구분으로 여러 값 전달 가능. 생략 시 모든 상태 매치',
+    description: '상태 다중 필터 — 콤마 구분으로 여러 값 전달 가능. 생략 시 모든 상태 매치',
     example: 'PENDING,FAILED',
     enum: JobStatus,
     enumName: 'JobStatus',
