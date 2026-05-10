@@ -28,6 +28,7 @@
 | public 클래스 (의도가 이름만으로 자명하지 않은 경우) | 권장 |
 | Controller 메소드 | **불요** — `@nestjs/swagger` 의 `@ApiOperation` / `@ApiResponse` 가 외부 계약을 표현 |
 | DTO 클래스 / 필드 | **불요** — `class-validator` + `@ApiProperty` 가 제약과 스키마를 표현 |
+| enum 멤버 | **권장** — 1줄 JSDoc 으로 도메인 의미 명시 |
 | private 메소드 / 헬퍼 | 시그니처로 자명한 경우 생략 |
 | 단순 getter / setter | 생략 |
 
@@ -51,13 +52,13 @@
 
 ```ts
 /**
- * pending 상태의 작업을 size 개까지 클레임하여 processing 으로 전환한다
+ * PENDING 상태의 작업을 size 개까지 클레임하여 PROCESSING 으로 전환한다
  *
- * 클레임은 mutex 안에서 수행되므로 다른 요청 · tick 과의 lost update 가 방지된다
+ * 클레임은 JobsMutex 안에서 수행되므로 다른 요청 · tick 과의 lost update 가 방지된다
  *
  * @param size 한 번에 클레임할 최대 작업 수 (FIFO, createdAt asc)
  * @param triggeredBy 클레임 트리거 출처 — 처리 결과 추적에 사용
- * @returns 클레임된 작업 목록 (status='processing', triggeredBy set)
+ * @returns 클레임된 작업 목록 (status=PROCESSING, triggeredBy set)
  */
 async claimPending(size: number, triggeredBy: TriggerSource): Promise<Job[]>;
 ```
@@ -93,7 +94,7 @@ async claimPending(size: number): Promise<Job[]>;
 ```ts
 // PATCH 시점에 mutex 를 잡았더라도 read 직후 write 전까지 상태가 바뀔 수 있으므로
 // status 검증을 critical section 안에서 다시 수행한다
-if (job.status !== 'pending') throw new JobNotEditableException();
+if (job.status !== JobStatus.PENDING) throw new JobNotEditableException(job.status);
 ```
 
 ```ts
@@ -130,11 +131,11 @@ async tick(): Promise<void> {
   if (this.running) return;
   this.running = true;
   try {
-    // 1. pending 작업을 BATCH_SIZE 만큼 클레임 (mutex 통과)
-    const jobs = await this.repo.claimPending(BATCH_SIZE, 'scheduler');
+    // 1. PENDING 작업을 BATCH_SIZE 만큼 클레임 (JobsMutex 통과)
+    const jobs = await this.service.claimPending(BATCH_SIZE, TriggerSource.SCHEDULER);
 
-    // 2. 병렬로 처리 시뮬레이션 — sleep + 결과 마킹
-    await Promise.all(jobs.map((j) => this.processOne(j)));
+    // 2. 병렬로 처리 시뮬레이션 — 부분 실패 격리를 위해 allSettled
+    await Promise.allSettled(jobs.map((j) => this.processOne(j)));
   } finally {
     this.running = false;
   }
@@ -154,6 +155,7 @@ async tick(): Promise<void> {
 | 인터페이스 · 타입 | PascalCase, `I` prefix 미사용 | `Job`, `PatchJobDto` |
 | 함수 · 메소드 | camelCase, 동사로 시작 | `claimPending`, `markDone` |
 | 상수 | UPPER_SNAKE_CASE | `BATCH_SIZE`, `FAILURE_RATE` |
+| **enum 멤버명 · 값** | **UPPER_SNAKE_CASE 통일** | `JobStatus.PENDING = 'PENDING'` |
 | 파일 | kebab-case | `jobs.service.ts`, `logging.interceptor.ts` |
 | NestJS 컴포넌트 파일 | `<name>.<role>.ts` | `jobs.controller.ts`, `jobs.repository.ts` |
 | 테스트 파일 | `<name>.spec.ts` (단위), `<name>.e2e-spec.ts` (e2e) | `jobs.service.spec.ts` |
@@ -176,7 +178,11 @@ JobAlreadyClaimedException
 - DTO · Entity · 내부 타입을 분리한다. 외부 인터페이스(DTO)와 내부 모델(Entity)이 같은
   모양이라도 변경 격리를 위해 별도 타입으로 둔다
 - 도메인 enum 값(상태 · 트리거 출처 등) 은 TypeScript `enum` 으로 정의한다
-  - Swagger 스키마 자동 매핑, NestJS 데코레이터(`@ApiProperty({ enum: ... })`) 와의 정합성에 유리
+  - **멤버명과 값 모두 UPPER_SNAKE_CASE 로 통일** — 멤버는 상수의 의미, 값은
+    API 표면(검색 쿼리 · JSON · 로그) 에 노출되어 시인성 확보
+  - 각 멤버에 1 줄 JSDoc 으로 도메인 의미를 명시
+    (`/** 처리 대기 — 스케줄러가 클레임할 후보 */`)
+  - Swagger 스키마 자동 매핑, `@ApiProperty({ enum: ..., enumName: ... })` 와의 정합성에 유리
   - 단일 위치에서 값 추가 · 변경 가능 (string literal 분산 회피)
 
 ---
@@ -189,39 +195,77 @@ NestJS 표준 모듈 구조를 따른다.
 src/
 ├── main.ts
 ├── app.module.ts
+├── config/
+│   └── app-config.module.ts          # ConfigModule.forRoot 단일 진입점
 ├── jobs/
 │   ├── jobs.module.ts
 │   ├── jobs.controller.ts
 │   ├── jobs.service.ts
-│   ├── jobs.repository.ts
+│   ├── jobs.repository.ts            # 영속성 only (CRUD)
+│   ├── jobs.mutex.ts                 # JobsMutex provider
 │   ├── jobs.scheduler.ts
 │   ├── dto/
 │   │   ├── create-job.dto.ts
-│   │   └── patch-job.dto.ts
+│   │   ├── patch-job.dto.ts
+│   │   ├── list-jobs.query.ts
+│   │   ├── search-jobs.query.ts
+│   │   └── job.response.ts           # JobResponse — 외부 응답 DTO
 │   ├── entities/
-│   │   └── job.ts
+│   │   └── job.ts                    # Job 인터페이스 + JobStatus / TriggerSource enum
 │   └── exceptions/
-│       └── job.exceptions.ts
+│       └── job.exceptions.ts         # DomainException 베이스 + 4종
 ├── common/
+│   ├── dto/
+│   │   ├── api-response.dto.ts       # ApiResponse / SingleResponse / PaginatedResponse / PaginationMeta
+│   │   └── error-response.dto.ts     # ErrorResponse
+│   ├── context/
+│   │   └── trace-context.ts          # AsyncLocalStorage + getTraceId
 │   ├── interceptors/
 │   │   └── logging.interceptor.ts
 │   ├── filters/
 │   │   └── all-exceptions.filter.ts
 │   ├── middlewares/
-│   │   └── request-id.middleware.ts
-│   └── decorators/
-│       └── request-id.decorator.ts
+│   │   └── trace-context.middleware.ts
+│   ├── decorators/
+│   │   └── trace-id.decorator.ts
+│   └── random.service.ts             # RandomService — Math.random 추상화
 └── logging/
     ├── logging.module.ts
     └── logger.service.ts
 ```
 
 > 위 구조는 1차안이며 구현 시점에 자연스럽게 조정될 수 있다. 핵심은 *도메인(jobs)* 과
-> *cross-cutting(common, logging)* 의 분리.
+> *cross-cutting(common, logging, config)* 의 분리.
 
 ---
 
-## 8. 적용 범위 · 예외
+## 8. Lint · Format
+
+코드 스타일은 도구로 강제한다 — 가이드 준수 여부를 사람 검토에 맡기지 않는다.
+
+| 도구 | 역할 | 설정 파일 |
+|---|---|---|
+| Prettier | 포매팅 (들여쓰기, 따옴표, 줄 길이 등) | `.prettierrc` |
+| ESLint | 정적 분석 (typescript-eslint recommendedTypeChecked, unused-imports, prettier/recommended) | `eslint.config.mjs` |
+
+**Prettier 설정 요지** — `singleQuote: true`, `semi: true`, `trailingComma: 'all'`,
+`printWidth: 100`, `tabWidth: 2`.
+
+**ESLint 설정 요지**
+- `typescript-eslint` 의 type-aware 룰 사용 (`recommendedTypeChecked`)
+- `eslint-plugin-prettier/recommended` 로 포매팅 위반을 lint error 로 승격
+- `eslint-plugin-unused-imports` 로 미사용 import 제거 강제
+- 테스트 파일은 일부 unsafe-* 룰 완화 (실용성)
+
+**스크립트**
+- `npm run lint` — 자동 수정 + 위반 보고
+- `npm run format` — Prettier 적용
+
+CI 도입 시 `npm run lint` 와 `npm run build` 를 통과 게이트로 둔다.
+
+---
+
+## 9. 적용 범위 · 예외
 
 이 가이드는 본 과제 코드 전체에 적용된다. 외부 라이브러리에서 import 한 코드에는
 적용되지 않는다. 예외가 필요한 경우 해당 위치에 1 줄 주석으로 *왜 예외인지* 명시한다.
