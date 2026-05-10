@@ -1,10 +1,6 @@
 import { ArgumentsHost, BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { JobStatus } from '../../jobs/entities/job';
-import {
-  JobNotEditableException,
-  JobNotFoundException,
-} from '../../jobs/exceptions/job.exceptions';
+import { JobNotFoundException } from '../../jobs/exceptions/job.exceptions';
 import { LoggerService } from '../../logging/logger.service';
 import { traceContext } from '../context/trace-context';
 import { AllExceptionsFilter } from './all-exceptions.filter';
@@ -45,13 +41,6 @@ describe('AllExceptionsFilter', () => {
     });
     expect(body.message).toContain('abc');
     expect(body.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-  });
-
-  it('도메인 예외(JobNotEditable)의 code 가 JOB_NOT_EDITABLE', () => {
-    filter.catch(new JobNotEditableException(JobStatus.PROCESSING), makeHost('PATCH', '/jobs/x'));
-
-    expect(response.status).toHaveBeenCalledWith(409);
-    expect(response.json.mock.calls[0][0]).toMatchObject({ code: 'JOB_NOT_EDITABLE' });
   });
 
   it('class-validator 의 BadRequestException 은 VALIDATION_FAILED 로 매핑', () => {

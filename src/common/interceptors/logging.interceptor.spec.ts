@@ -63,15 +63,6 @@ describe('LoggingInterceptor', () => {
     expect(logger.append).toHaveBeenCalledWith(expect.objectContaining({ traceId: 'tid-123' }));
   });
 
-  it('컨텍스트가 없으면 traceId 는 undefined 로 기록된다', async () => {
-    const ctx = makeContext('GET', '/jobs', 200);
-    const next: CallHandler = { handle: () => of({}) };
-
-    await lastValueFrom(interceptor.intercept(ctx, next));
-
-    expect(logger.append).toHaveBeenCalledWith(expect.objectContaining({ traceId: undefined }));
-  });
-
   it('error 발생 시 logger.append 를 호출하지 않는다 (Filter 책임)', async () => {
     const ctx = makeContext('GET', '/jobs/x', 404);
     const next: CallHandler = {

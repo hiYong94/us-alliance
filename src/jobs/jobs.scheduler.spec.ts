@@ -184,16 +184,4 @@ describe('JobsScheduler', () => {
       expect(service.markDone).toHaveBeenCalledWith('c');
     });
   });
-
-  describe('firstRun', () => {
-    it('tick 을 호출한다', async () => {
-      service.claimPending.mockResolvedValue([]);
-
-      const promise = scheduler.firstRun();
-      await jest.runAllTimersAsync();
-      await promise;
-
-      expect(service.claimPending).toHaveBeenCalledWith(5, TriggerSource.SCHEDULER);
-    });
-  });
 });

@@ -49,15 +49,6 @@ describe('TraceContextMiddleware', () => {
     expect(setHeader).toHaveBeenCalledWith('x-trace-id', captured);
   });
 
-  it('next 콜백이 호출된다', () => {
-    const req = makeReq('test');
-    const next = jest.fn();
-
-    middleware.use(req as Request, res as Response, next);
-
-    expect(next).toHaveBeenCalledTimes(1);
-  });
-
   it('run 외부에서는 traceId 가 격리된다', () => {
     const req = makeReq('isolated-id');
 

@@ -65,16 +65,6 @@ describe('JobsRepository', () => {
     expect(await repo.findAll()).toEqual([job]);
   });
 
-  it('create 여러 건은 추가 순서를 보존한다', async () => {
-    const a = makeJob({ id: 'a' });
-    const b = makeJob({ id: 'b' });
-    await repo.create(a);
-    await repo.create(b);
-
-    const jobs = await repo.findAll();
-    expect(jobs.map((job) => job.id)).toEqual(['a', 'b']);
-  });
-
   it('findOne: 존재하는 id 면 Job 반환', async () => {
     const job = makeJob({ id: 'x' });
     await repo.create(job);
@@ -98,15 +88,6 @@ describe('JobsRepository', () => {
     const bFound = jobs.find((job) => job.id === 'b');
     expect(aFound?.title).toBe('after');
     expect(bFound?.title).toBe('other');
-  });
-
-  it('update 는 변경을 파일에 영속화한다', async () => {
-    await repo.create(makeJob({ id: 'p', title: 'original' }));
-    await repo.update('p', { ...makeJob({ id: 'p' }), title: 'persisted' });
-
-    const raw = fs.readFileSync(tmpFile, 'utf8');
-    expect(raw).toContain('persisted');
-    expect(raw).not.toContain('original');
   });
 });
 

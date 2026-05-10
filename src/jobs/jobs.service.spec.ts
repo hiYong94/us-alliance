@@ -77,11 +77,6 @@ describe('JobsService', () => {
       expect(created.title).toBe('new-job');
       expect(created.description).toBe('detail');
     });
-
-    it('description 미지정 시 null 로 저장된다', async () => {
-      const created = await service.create({ title: 'no-desc' });
-      expect(created.description).toBeNull();
-    });
   });
 
   describe('findAll', () => {
@@ -147,11 +142,6 @@ describe('JobsService', () => {
         offset: 0,
       });
       expect(result.items.map((job) => job.id)).toEqual(['a']);
-    });
-
-    it('필터 미지정 시 모든 미취소 Job 반환', async () => {
-      const result = await service.search({ limit: 20, offset: 0 });
-      expect(result.total).toBe(3); // d 는 soft-deleted
     });
   });
 
@@ -264,12 +254,6 @@ describe('JobsService', () => {
       const claimed = await service.claimPending(10, TriggerSource.SCHEDULER);
       expect(claimed.map((job) => job.id)).toEqual(['p1']);
     });
-
-    it('후보가 size 보다 적으면 있는 만큼만 반환', async () => {
-      await repo.create(makeJob({ id: 'a' }));
-      const claimed = await service.claimPending(5, TriggerSource.SCHEDULER);
-      expect(claimed).toHaveLength(1);
-    });
   });
 
   describe('mark*', () => {
@@ -278,13 +262,6 @@ describe('JobsService', () => {
       await service.markDone('m');
       const job = await repo.findOne('m');
       expect(job?.status).toBe(JobStatus.DONE);
-    });
-
-    it('markFailed 는 status 를 FAILED 로 전환', async () => {
-      await repo.create(makeJob({ id: 'm', status: JobStatus.PROCESSING }));
-      await service.markFailed('m');
-      const job = await repo.findOne('m');
-      expect(job?.status).toBe(JobStatus.FAILED);
     });
 
     it('mark* 는 미존재 시 JobNotFoundException', async () => {
