@@ -16,8 +16,7 @@ export class CreateJobDto {
   title!: string;
 
   @ApiProperty({
-    description:
-      '작업 상세 설명 — 처리 대상의 부가 정보. 생략 가능하며 null 로 저장된다',
+    description: '작업 상세 설명 — 처리 대상의 부가 정보. 생략 가능하며 null 로 저장된다',
     example: '매일 자정 DB 스냅샷을 S3 로 업로드',
     type: String,
     required: false,
