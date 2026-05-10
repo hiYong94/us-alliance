@@ -5,9 +5,9 @@
  * 별도 CANCELED 상태는 두지 않으며, 취소는 deletedAt set 으로 표현한다
  */
 export enum JobStatus {
-  /** 처리 대기 — 스케줄러 또는 수동 실행이 클레임할 후보 */
+  /** 처리 대기 — 스케줄러 또는 수동 실행이 점유할 후보 */
   PENDING = 'PENDING',
-  /** 처리 중 — 클레임된 상태, 결과(DONE/FAILED) 가 정해지기 전 */
+  /** 처리 중 — 점유된 상태, 결과(DONE/FAILED) 가 정해지기 전 */
   PROCESSING = 'PROCESSING',
   /** 처리 완료 — 종료 상태 */
   DONE = 'DONE',
@@ -16,12 +16,12 @@ export enum JobStatus {
 }
 
 /**
- * 클레임 트리거 출처 — 어느 경로로 PROCESSING 에 진입했는지 추적
+ * 점유 트리거 출처 — 어느 경로로 PROCESSING 에 진입했는지 추적
  */
 export enum TriggerSource {
-  /** 자동 — @Cron tick 에 의한 클레임 */
+  /** 자동 — @Cron tick 에 의한 점유 */
   SCHEDULER = 'SCHEDULER',
-  /** 수동 — POST /jobs/:id/run 에 의한 클레임 */
+  /** 수동 — POST /jobs/:id/run 에 의한 점유 */
   MANUAL = 'MANUAL',
 }
 

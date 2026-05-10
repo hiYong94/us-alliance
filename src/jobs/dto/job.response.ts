@@ -39,7 +39,7 @@ export class JobResponse {
 
   @ApiProperty({
     description:
-      '작업 상태 — 생성 시 PENDING. 스케줄러/수동 클레임 시 PROCESSING. 종료는 DONE 또는 FAILED',
+      '작업 상태 — 생성 시 PENDING. 스케줄러/수동 점유 시 PROCESSING. 종료는 DONE 또는 FAILED',
     example: JobStatus.PENDING,
     enum: JobStatus,
     enumName: 'JobStatus',
@@ -48,7 +48,7 @@ export class JobResponse {
   status!: JobStatus;
 
   @ApiProperty({
-    description: '클레임 트리거 출처 — 처리 시작 시 SCHEDULER 또는 MANUAL. PENDING 동안은 null',
+    description: '점유 트리거 출처 — 처리 시작 시 SCHEDULER 또는 MANUAL. PENDING 동안은 null',
     example: null,
     enum: TriggerSource,
     enumName: 'TriggerSource',

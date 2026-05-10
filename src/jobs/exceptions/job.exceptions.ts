@@ -57,7 +57,7 @@ export class JobAlreadyClaimedException extends DomainException {
   readonly code = JOB_ERROR_CODE.ALREADY_CLAIMED;
 
   constructor() {
-    super('이미 클레임된 작업입니다', HttpStatus.CONFLICT);
+    super('이미 점유된 작업입니다', HttpStatus.CONFLICT);
   }
 }
 

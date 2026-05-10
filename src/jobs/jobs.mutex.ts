@@ -4,7 +4,7 @@ import { Mutex } from 'async-mutex';
 /**
  * Job 데이터에 대한 read-modify-write 를 직렬화하는 단일 mutex
  *
- * Service · Scheduler 의 모든 mutation 경로(생성 · 수정 · 클레임 · 마킹) 가
+ * Service · Scheduler 의 모든 mutation 경로(생성 · 수정 · 점유 · 마킹) 가
  * 이 인스턴스의 runExclusive 를 통과하여 lost update 를 방지한다.
  *
  * 멀티 프로세스 환경은 보호 불가 — README 회고에 외부 락 (Redis Redlock) 또는
