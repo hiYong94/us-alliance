@@ -1,5 +1,6 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { TraceContextMiddleware } from './common/middlewares/trace-context.middleware';
@@ -19,7 +20,7 @@ import { LoggingModule } from './logging/logging.module';
  * NestJS DI 컨테이너가 LoggerService 등 의존성을 주입할 수 있게 한다.
  */
 @Module({
-  imports: [AppConfigModule, JobsModule, LoggingModule],
+  imports: [AppConfigModule, JobsModule, LoggingModule, ScheduleModule.forRoot()],
   providers: [
     {
       provide: APP_FILTER,

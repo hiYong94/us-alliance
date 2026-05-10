@@ -1,0 +1,14 @@
+{
+    "jobs": [
+        {
+            "id": "15a5a750-0402-43a0-985a-ea75db1904d3",
+            "title": "데이터 백업 작업",
+            "description": "매일 자정 DB 스냅샷을 S3 로 업로드",
+            "status": "DONE",
+            "triggeredBy": "MANUAL",
+            "createdAt": "2026-05-10T13:31:00.910Z",
+            "updatedAt": "2026-05-10T13:31:29.804Z",
+            "deletedAt": null
+        }
+    ]
+}

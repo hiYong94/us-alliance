@@ -28,6 +28,7 @@ import { ListJobsQuery } from './dto/list-jobs.query';
 import { PatchJobDto } from './dto/patch-job.dto';
 import { SearchJobsQuery } from './dto/search-jobs.query';
 import { TriggerSource } from './entities/job';
+import { JobsScheduler } from './jobs.scheduler';
 import { JobsService } from './jobs.service';
 
 const SINGLE_JOB_SCHEMA = {
@@ -53,7 +54,10 @@ const PAGINATED_JOB_SCHEMA = {
 @ApiExtraModels(SingleResponse, PaginatedResponse, PaginationMeta, JobResponse, ErrorResponse)
 @Controller('jobs')
 export class JobsController {
-  constructor(private readonly service: JobsService) {}
+  constructor(
+    private readonly service: JobsService,
+    private readonly scheduler: JobsScheduler,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: '작업 생성', description: '새 작업을 PENDING 상태로 생성한다' })
@@ -137,8 +141,8 @@ export class JobsController {
   })
   async run(@Param('id') id: string): Promise<SingleResponse<JobResponse>> {
     const claimed = await this.service.claimOne(id, TriggerSource.MANUAL);
-    // TODO #17 (feat/jobs-scheduler): scheduler.processOne(claimed) 비동기 트리거.
-    // 현 시점에는 점유 전환만 수행 — 처리 종료(DONE/FAILED) 까지는 진행되지 않는다.
+    // fire-and-forget 비동기 처리 트리거 — processOne 은 내부 try/catch 로 throw 하지 않음
+    void this.scheduler.processOne(claimed);
     return new SingleResponse(JobResponse.from(claimed));
   }
 }
