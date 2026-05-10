@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
+import { LoggerService } from './logger.service';
 
-/**
- * 로깅 모듈 — 후속 브랜치에서 LoggerService 가 등록·export 된다
- */
-@Module({})
+@Module({
+  providers: [LoggerService],
+  exports: [LoggerService],
+})
 export class LoggingModule {}
