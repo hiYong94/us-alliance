@@ -95,6 +95,10 @@ describe('LoggerService', () => {
       .filter(Boolean);
 
     expect(lines).toHaveLength(3);
-    expect(lines.map((l) => (JSON.parse(l) as { type: string }).type)).toEqual(['a', 'b', 'c']);
+    expect(lines.map((line) => (JSON.parse(line) as { type: string }).type)).toEqual([
+      'a',
+      'b',
+      'c',
+    ]);
   });
 });

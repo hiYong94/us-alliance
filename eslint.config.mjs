@@ -38,6 +38,8 @@ export default tseslint.config(
       // 호출 · 멤버 접근 두 룰을 전역으로 끔. 인자 · 할당 · 반환 경계 보호 룰은 유지한다.
       '@typescript-eslint/no-unsafe-call': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
+      // 1줄짜리 if/else/for/while 도 항상 { } 줄바꿈 — 본문 추가 시 brace 누락 버그 차단
+      curly: ['error', 'all'],
       'unused-imports/no-unused-imports': 'error',
       'unused-imports/no-unused-vars': ['warn', { vars: 'all', args: 'after-used' }],
       'prettier/prettier': ['error', { endOfLine: 'auto' }],

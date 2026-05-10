@@ -39,7 +39,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
       path: request.url,
     };
-    if (details) body.details = details;
+    if (details) {
+      body.details = details;
+    }
 
     this.logger.append({
       type: 'http',
@@ -61,31 +63,49 @@ export class AllExceptionsFilter implements ExceptionFilter {
   }
 
   private resolveCode(exception: unknown, status: number): string {
-    if (isDomainException(exception)) return exception.code;
+    if (isDomainException(exception)) {
+      return exception.code;
+    }
     // HttpStatus 는 enum 인데 status 는 number 라 직접 비교 시 no-unsafe-enum-comparison 발생.
     // 의미 손실을 피하기 위해 Number() 로 enum 값을 number 로 평탄화한다.
-    if (status === Number(HttpStatus.BAD_REQUEST)) return 'VALIDATION_FAILED';
-    if (status >= Number(HttpStatus.INTERNAL_SERVER_ERROR)) return 'INTERNAL_SERVER_ERROR';
+    if (status === Number(HttpStatus.BAD_REQUEST)) {
+      return 'VALIDATION_FAILED';
+    }
+    if (status >= Number(HttpStatus.INTERNAL_SERVER_ERROR)) {
+      return 'INTERNAL_SERVER_ERROR';
+    }
     return 'HTTP_ERROR';
   }
 
   private resolveMessage(exception: unknown): string {
     if (exception instanceof HttpException) {
       const res = exception.getResponse();
-      if (typeof res === 'string') return res;
+      if (typeof res === 'string') {
+        return res;
+      }
       const msg = (res as { message?: string | string[] }).message;
-      if (Array.isArray(msg)) return msg.join(', ');
-      if (typeof msg === 'string') return msg;
+      if (Array.isArray(msg)) {
+        return msg.join(', ');
+      }
+      if (typeof msg === 'string') {
+        return msg;
+      }
       return exception.message;
     }
     return '서버 내부 오류';
   }
 
   private resolveDetails(exception: unknown): Record<string, unknown> | undefined {
-    if (typeof exception !== 'object' || exception === null) return undefined;
-    if (!('details' in exception)) return undefined;
+    if (typeof exception !== 'object' || exception === null) {
+      return undefined;
+    }
+    if (!('details' in exception)) {
+      return undefined;
+    }
     const details = (exception as { details?: unknown }).details;
-    if (typeof details !== 'object' || details === null) return undefined;
+    if (typeof details !== 'object' || details === null) {
+      return undefined;
+    }
     return details as Record<string, unknown>;
   }
 }
