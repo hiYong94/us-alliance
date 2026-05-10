@@ -48,7 +48,7 @@ PENDING ──▶ PROCESSING ──▶ DONE
 
 ## 2. API
 
-### 2.1 응답 envelope
+### 2.1 응답 형식
 
 모든 성공 응답은 동일한 형태로 감싼다. 구현은 `src/common/dto/api-response.dto.ts` 의
 **추상 베이스 `ApiResponse<T>`** 와 두 구체 클래스 (`SingleResponse<T>`, `PaginatedResponse<T>`)
@@ -72,7 +72,7 @@ PENDING ──▶ PROCESSING ──▶ DONE
 > 추상 베이스를 두는 이유: 모든 응답이 `data` 필드를 가진다는 계약을 타입 시스템에 강제하고,
 > Swagger 스키마를 `getSchemaPath` + `allOf` 패턴으로 결합 가능하게 한다.
 
-### 2.2 에러 envelope
+### 2.2 에러 응답 형식
 
 ```json
 {
@@ -138,7 +138,7 @@ type guard 로 코드를 단일 경로 추출한다.
 - `description`: 0~2000자, 선택
 - `status` 등 다른 필드는 클라이언트가 보내도 `forbidNonWhitelisted` 로 거부
 
-**Response 201** — 단건 envelope.
+**Response 201** — 단건 응답.
 초기 상태는 `status="PENDING"`, `triggeredBy=null`, `deletedAt=null`.
 
 #### GET /jobs
@@ -192,7 +192,7 @@ type guard 로 코드를 단일 경로 추출한다.
 6. body 가 비었거나 알 수 없는 필드만 있으면 `400 VALIDATION_FAILED`
 7. mutex 안에서 검증·수정·write 를 모두 수행
 
-**Response 200** — 단건 envelope, 수정 후 상태
+**Response 200** — 단건 응답, 수정 후 상태
 
 #### POST /jobs/:id/run (명세 외 추가)
 
@@ -433,11 +433,11 @@ NestJS 의 cross-cutting 메커니즘에 비기능 관심사를 위임하여 컨
 | 관심사 | 메커니즘 | 컴포넌트 |
 |---|---|---|
 | 요청·응답 로깅 | Interceptor | `LoggingInterceptor` (전역) |
-| 에러 envelope + 에러 로깅 | ExceptionFilter | `AllExceptionsFilter` (전역) |
+| 에러 응답 + 에러 로깅 | ExceptionFilter | `AllExceptionsFilter` (전역) |
 | 입력 유효성 | Pipe | `ValidationPipe` (전역) |
 | trace 컨텍스트 | Middleware + AsyncLocalStorage | `TraceContextMiddleware` + `@TraceId()` 데코레이터 |
 | 환경 변수 | NestJS 표준 모듈 | `@nestjs/config` `ConfigService` (전역) |
-| 응답 envelope | 추상 베이스 + 구체 클래스 | `ApiResponse<T>` / `SingleResponse<T>` / `PaginatedResponse<T>` |
+| 응답 형식 | 추상 베이스 + 구체 클래스 | `ApiResponse<T>` / `SingleResponse<T>` / `PaginatedResponse<T>` |
 | 에러 응답 모델 | DTO 클래스 | `ErrorResponse` |
 | 락 | DI Provider + 라이브러리 네이티브 API | `JobsMutex.runExclusive` (Service 레이어) |
 | 무작위성 | DI Provider | `RandomService.next` (스케줄러 시뮬레이션 결정성) |
@@ -461,7 +461,7 @@ NestJS 의 cross-cutting 메커니즘에 비기능 관심사를 위임하여 컨
 | 계층 | 도구 | 대상 |
 |---|---|---|
 | 단위 | Jest | 도메인 로직 (상태 전이, 검색 필터링), `JobsMutex` 직렬화, Repository CRUD, 헬퍼 |
-| e2e | `@nestjs/testing` + `supertest` | 6개 엔드포인트 정상·에러 케이스, envelope 일관성 |
+| e2e | `@nestjs/testing` + `supertest` | 6개 엔드포인트 정상·에러 케이스, 응답 구조 일관성 |
 | 동시성 | `Promise.all` 부하 시뮬레이션 | 동시 PATCH, 클레임 ↔ PATCH, 동시 cancel + 클레임, 수동 실행 ↔ 스케줄러 |
 | 스케줄러 | 메소드 직접 호출 | `tick()` 직접 호출로 claim · 처리 · marking 흐름 검증. Cron 시간 모킹 회피 |
 

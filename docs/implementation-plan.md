@@ -33,7 +33,7 @@
 | # | Branch | 목적 | 주요 변경 | 의존 |
 |---|---|---|---|---|
 | 5 | `feat/job-entity-and-enums` | Job 인터페이스 + 2 enum (UPPER_SNAKE_CASE 멤버명·값 + 멤버 JSDoc) | `src/jobs/entities/job.ts` — `Job`, `JobStatus`, `TriggerSource` | 4 |
-| 6 | `feat/common-response-dtos` | 공통 응답 envelope 추상화 | `src/common/dto/api-response.dto.ts` (`ApiResponse<T>`, `SingleResponse<T>`, `PaginatedResponse<T>`, `PaginationMeta`), `src/common/dto/error-response.dto.ts` (`ErrorResponse`) | 4 |
+| 6 | `feat/common-response-dtos` | 공통 응답 추상화 | `src/common/dto/api-response.dto.ts` (`ApiResponse<T>`, `SingleResponse<T>`, `PaginatedResponse<T>`, `PaginationMeta`), `src/common/dto/error-response.dto.ts` (`ErrorResponse`) | 4 |
 | 7 | `feat/job-dtos` | 입력 DTO + JobResponse + 꼼꼼한 `@ApiProperty` (description / example / required / nullable / type / length) | `src/jobs/dto/{create-job,patch-job,list-jobs.query,search-jobs.query,job.response}.ts` | 5 |
 | 8 | `feat/job-domain-exceptions` | 추상 베이스 + 4종 예외 + type guard | `src/jobs/exceptions/job.exceptions.ts` — `DomainException` 추상 + `JobNotFound`/`JobNotEditable`/`JobAlreadyCanceled`/`JobAlreadyClaimed` + `isDomainException` | 5 |
 
@@ -44,7 +44,7 @@
 도메인 로직 *전* 에 배치한다. 근거:
 
 - `AllExceptionsFilter` 가 도메인 예외 코드를 매핑하려면 Phase 2 의 예외가 먼저 land 되어야 하고
-- e2e 부터 envelope 일관성을 검증해야 평가 시점 설득력이 강화되며
+- e2e 부터 응답 구조 일관성을 검증해야 평가 시점 설득력이 강화되며
 - Phase 4 의 `feat/global-bootstrap` 이 Filter · Interceptor · Middleware 를 한꺼번에 묶음
 
 | # | Branch | 목적 | 주요 변경 | 의존 |
@@ -52,7 +52,7 @@
 | 9 | `feat/logger-service` | 일자 파티셔닝 JSON Lines 로거 (+ spec) | `src/logging/logger.service.ts` (+ `.spec.ts`) — `LOG_DIR` 은 `ConfigService` 로 조회, 자정 경계, 디렉토리 자동 생성, JSON 1줄 | 4 |
 | 10 | `feat/trace-context` | traceId 미들웨어 + 데코레이터 + ALS | `src/common/middlewares/trace-context.middleware.ts`, `decorators/trace-id.decorator.ts`, `context/trace-context.ts` — `X-Trace-Id` inbound/outbound | 4 |
 | 11 | `feat/logging-interceptor` | HTTP 요청·응답 로깅 (+ spec) | `src/common/interceptors/logging.interceptor.ts` (+ spec) — `getTraceId()` 포함 | 9, 10 |
-| 12 | `feat/all-exceptions-filter` | 에러 envelope + 에러 로깅 (+ spec) | `src/common/filters/all-exceptions.filter.ts` (+ spec) — `ErrorResponse` 응답, `isDomainException` type guard | 6, 8, 9, 10 |
+| 12 | `feat/all-exceptions-filter` | 에러 응답 + 에러 로깅 (+ spec) | `src/common/filters/all-exceptions.filter.ts` (+ spec) — `ErrorResponse` 응답, `isDomainException` type guard | 6, 8, 9, 10 |
 
 ---
 
@@ -62,7 +62,7 @@
 |---|---|---|---|---|
 | 13 | `feat/jobs-repository-with-mutex` | 영속성(CRUD) + 단일 mutex provider (+ spec) | `src/jobs/jobs.repository.ts` (CRUD only — `ConfigService` 에서 `JOBS_DB_PATH` 조회), `src/jobs/jobs.mutex.ts` (`JobsMutex.runExclusive`) (+ spec — claim 직렬화, lost update 차단) | 4, 5 |
 | 14 | `feat/jobs-service` | 도메인 로직 (+ spec) | `src/jobs/jobs.service.ts` (+ spec — `JobsMutex.runExclusive` 안에서 검증 · 클레임 · 상태 전이, 검색 필터) | 7, 8, 13 |
-| 15 | `feat/jobs-controller-and-swagger` | 6 엔드포인트 + envelope wrapper + `@ApiOperation`/`@ApiResponse` + `@ApiExtraModels` 등록 | `src/jobs/jobs.controller.ts`, `jobs.module.ts` 등록 | 14 |
+| 15 | `feat/jobs-controller-and-swagger` | 6 엔드포인트 + 응답 wrapper + `@ApiOperation`/`@ApiResponse` + `@ApiExtraModels` 등록 | `src/jobs/jobs.controller.ts`, `jobs.module.ts` 등록 | 14 |
 | 16 | `feat/global-bootstrap` | main.ts 전역 셋업 | `src/main.ts` — `ValidationPipe({whitelist, forbidNonWhitelisted, transform})`, `AllExceptionsFilter`, `LoggingInterceptor`, `TraceContextMiddleware`, Swagger `/docs` mount, `PORT` 는 `ConfigService` 조회 | 11, 12, 15 |
 
 ---
@@ -196,9 +196,9 @@ test/
 - **Phase 4 #16 종료**:
   1. `npm run start:dev` 부팅 무에러
   2. `curl localhost:3000/docs` → Swagger UI 응답
-  3. `curl -X POST localhost:3000/jobs -H 'Content-Type: application/json' -d '{"title":"t1"}'` → 201, `{ data: ... }` envelope, `X-Trace-Id` 응답 헤더 존재
-  4. `curl localhost:3000/jobs` → `{ data, meta }` envelope
-  5. 잘못된 PATCH (예: 존재하지 않는 ID) → `{ statusCode, code, message, ... }` 에러 envelope
+  3. `curl -X POST localhost:3000/jobs -H 'Content-Type: application/json' -d '{"title":"t1"}'` → 201, `{ data: ... }` 형태, `X-Trace-Id` 응답 헤더 존재
+  4. `curl localhost:3000/jobs` → `{ data, meta }` 형태
+  5. 잘못된 PATCH (예: 존재하지 않는 ID) → `{ statusCode, code, message, ... }` 에러 응답
 - **Phase 5 #17 종료**: 부팅 5초 후 `logs/<오늘>.log` 에 `tick.start` 항목 등장
 - **Phase 5 #19 종료**: `npm run test:e2e` 그린
 - **Phase 5 #20 종료**: README 실행 가이드대로 따라 Swagger UI + 샘플 데이터 조회 동작
