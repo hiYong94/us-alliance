@@ -4,20 +4,20 @@
             "id": "11111111-1111-4111-8111-111111111111",
             "title": "데이터 백업",
             "description": "매일 자정 DB 스냅샷을 S3 로 업로드한다",
-            "status": "PROCESSING",
-            "triggeredBy": "SCHEDULER",
+            "status": "PENDING",
+            "triggeredBy": null,
             "createdAt": "2026-05-08T01:00:00.000Z",
-            "updatedAt": "2026-05-10T13:37:21.935Z",
+            "updatedAt": "2026-05-08T01:00:00.000Z",
             "deletedAt": null
         },
         {
             "id": "22222222-2222-4222-8222-222222222222",
             "title": "마케팅 이메일 발송",
             "description": "주간 캠페인 이메일 5천 건",
-            "status": "PROCESSING",
+            "status": "DONE",
             "triggeredBy": "SCHEDULER",
             "createdAt": "2026-05-09T03:15:00.000Z",
-            "updatedAt": "2026-05-09T03:30:00.500Z",
+            "updatedAt": "2026-05-09T03:32:00.123Z",
             "deletedAt": null
         },
         {
@@ -54,20 +54,10 @@
             "id": "66666666-6666-4666-8666-666666666666",
             "title": "Redis 캐시 정리",
             "description": "만료 키 일괄 정리",
-            "status": "PROCESSING",
-            "triggeredBy": "SCHEDULER",
+            "status": "PENDING",
+            "triggeredBy": null,
             "createdAt": "2026-05-10T09:00:00.000Z",
-            "updatedAt": "2026-05-10T13:37:21.935Z",
-            "deletedAt": null
-        },
-        {
-            "id": "ac123f6f-7e3a-43e4-91be-40334f9a742e",
-            "title": "boot-verify-test",
-            "description": null,
-            "status": "PROCESSING",
-            "triggeredBy": "SCHEDULER",
-            "createdAt": "2026-05-11T01:23:30.945Z",
-            "updatedAt": "2026-05-11T01:23:35.803Z",
+            "updatedAt": "2026-05-10T09:00:00.000Z",
             "deletedAt": null
         }
     ]
