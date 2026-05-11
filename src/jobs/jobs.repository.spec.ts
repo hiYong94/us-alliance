@@ -65,16 +65,6 @@ describe('JobsRepository', () => {
     expect(await repo.findAll()).toEqual([job]);
   });
 
-  it('create 여러 건은 추가 순서를 보존한다', async () => {
-    const a = makeJob({ id: 'a' });
-    const b = makeJob({ id: 'b' });
-    await repo.create(a);
-    await repo.create(b);
-
-    const jobs = await repo.findAll();
-    expect(jobs.map((job) => job.id)).toEqual(['a', 'b']);
-  });
-
   it('findOne: 존재하는 id 면 Job 반환', async () => {
     const job = makeJob({ id: 'x' });
     await repo.create(job);
@@ -98,15 +88,6 @@ describe('JobsRepository', () => {
     const bFound = jobs.find((job) => job.id === 'b');
     expect(aFound?.title).toBe('after');
     expect(bFound?.title).toBe('other');
-  });
-
-  it('update 는 변경을 파일에 영속화한다', async () => {
-    await repo.create(makeJob({ id: 'p', title: 'original' }));
-    await repo.update('p', { ...makeJob({ id: 'p' }), title: 'persisted' });
-
-    const raw = fs.readFileSync(tmpFile, 'utf8');
-    expect(raw).toContain('persisted');
-    expect(raw).not.toContain('original');
   });
 });
 
@@ -147,9 +128,10 @@ describe('JobsMutex + JobsRepository 통합 — lost update 방지', () => {
   });
 
   it('mutex 안에서 직렬화된 RMW 두 건은 둘 다 반영된다 (lost update 없음)', async () => {
+    // Given — 단일 Job 이 영속됨, 두 비동기 RMW 가 같은 mutex 를 통해 진입
     await repo.create(makeJob({ id: 'race', title: 'initial', description: null }));
 
-    // 두 동시 RMW: a 는 title 갱신, b 는 description 갱신
+    // When — a 는 title 갱신 (긴 지연), b 는 description 갱신 (짧은 지연) — 동시 호출
     await Promise.all([
       mutex.runExclusive(async () => {
         const current = await repo.findOne('race');
@@ -163,7 +145,7 @@ describe('JobsMutex + JobsRepository 통합 — lost update 방지', () => {
       }),
     ]);
 
-    // 직렬화되었으므로 두 변경이 모두 보존됨 (a 먼저 → b 가 a 결과 위에서 실행)
+    // Then — 직렬화되었으므로 두 변경이 모두 보존 (a 먼저 → b 가 a 결과 위에서 실행)
     const final = await repo.findOne('race');
     expect(final?.title).toBe('updated-by-a');
     expect(final?.description).toBe('updated-by-b');

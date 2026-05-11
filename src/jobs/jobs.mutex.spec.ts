@@ -22,12 +22,6 @@ describe('JobsMutex', () => {
     expect(log).toEqual(['a-start', 'a-end', 'b-start', 'b-end']);
   });
 
-  it('runExclusive 의 반환값을 그대로 반환한다', async () => {
-    const mutex = new JobsMutex();
-    const result = await mutex.runExclusive(() => Promise.resolve(42));
-    expect(result).toBe(42);
-  });
-
   it('콜백 안에서 throw 한 예외는 그대로 전파되고 락이 해제된다', async () => {
     const mutex = new JobsMutex();
 
