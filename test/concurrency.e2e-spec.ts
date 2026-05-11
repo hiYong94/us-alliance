@@ -55,18 +55,18 @@ describe('Concurrency (e2e)', () => {
 
   // 동시 PATCH (다른 필드) — 두 변경 모두 보존 (lost update 없음)
   it('JobsMutex 가 동시 PATCH 두 건의 다른 필드 변경을 직렬 적용해 모두 보존한다', async () => {
+    // Given — PENDING Job 한 건
     const id = await createJob('initial');
 
-    // 두 PATCH 가 거의 동시에 도착 — JobsMutex 가 직렬화
+    // When — 두 PATCH 가 거의 동시에 도착 (한 쪽은 title, 다른 쪽은 description 갱신)
     const [first, second] = await Promise.all([
       request(server).patch(`/jobs/${id}`).send({ title: 'PATCHED-TITLE' }),
       request(server).patch(`/jobs/${id}`).send({ description: 'PATCHED-DESC' }),
     ]);
 
+    // Then — 둘 다 200 + 최종 상태에 두 변경이 모두 누적되어 있음 (mutex 직렬화 효과)
     expect(first.status).toBe(200);
     expect(second.status).toBe(200);
-
-    // 최종 상태 — 두 변경 모두 적용 (mutex 직렬화 효과)
     const final = await request(server).get(`/jobs/${id}`).expect(200);
     expect(final.body.data).toMatchObject({
       title: 'PATCHED-TITLE',
@@ -100,29 +100,26 @@ describe('Concurrency (e2e)', () => {
 
   // PATCH cancel ↔ POST run 경합 — 한 쪽만 성공
   it('cancel 과 run 이 경합할 때 먼저 도달한 쪽만 성공하고 다른 쪽은 상태에 맞는 거부 코드를 받는다', async () => {
+    // Given — PENDING Job 한 건
     const id = await createJob('cancel-vs-run');
 
-    // 같은 PENDING Job 에 대한 cancel 과 run 동시 요청
-    // 두 시나리오 모두 정상:
-    //   (a) cancel 먼저: cancel 200, run 409 JOB_ALREADY_CANCELED
-    //   (b) run 먼저: run 200, cancel 409 (PENDING 아님 → JOB_NOT_EDITABLE)
+    // When — 같은 PENDING Job 에 cancel 과 run 동시 요청
     const [cancelResponse, runResponse] = await Promise.all([
       request(server).patch(`/jobs/${id}`).send({ cancel: true }),
       request(server).post(`/jobs/${id}/run`),
     ]);
 
+    // Then — 정확히 둘 중 하나만 200, 다른 쪽은 mutex 직렬화 결과의 상태에 따라 409
+    //   (a) cancel 먼저 진입 → run 은 JOB_ALREADY_CANCELED
+    //   (b) run 먼저 진입 → cancel 은 JOB_NOT_EDITABLE (PROCESSING 은 cancel 불가)
     const cancelOk = cancelResponse.status === 200;
     const runOk = runResponse.status === 200;
-
-    // 정확히 둘 중 하나만 성공 (둘 다 성공하거나 둘 다 실패는 모두 mutex 위반)
     expect(cancelOk !== runOk).toBe(true);
 
     if (cancelOk) {
-      // cancel 먼저 — run 은 ALREADY_CANCELED
       expect(runResponse.status).toBe(409);
       expect(runResponse.body.code).toBe('JOB_ALREADY_CANCELED');
     } else {
-      // run 먼저 — cancel 은 NOT_EDITABLE (PROCESSING 인 Job 은 cancel 불가)
       expect(cancelResponse.status).toBe(409);
       expect(cancelResponse.body.code).toBe('JOB_NOT_EDITABLE');
     }

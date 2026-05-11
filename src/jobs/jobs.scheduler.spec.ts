@@ -143,30 +143,32 @@ describe('JobsScheduler', () => {
     });
 
     it('이전 tick 미종료 시 두 번째 tick 즉시 skip', async () => {
-      // 첫 tick 의 claimPending 이 resolve 안 되도록 hang
+      // Given — claimPending 이 resolve 되지 않도록 첫 tick 을 hang 시킴 (running=true 상태 유지)
       let resolveFirst!: (jobs: Job[]) => void;
       service.claimPending.mockReturnValueOnce(
         new Promise<Job[]>((resolve) => {
           resolveFirst = resolve;
         }),
       );
-
       const firstTick = scheduler.tick();
-      // 두 번째 tick — running flag 로 즉시 return
+
+      // When — 두 번째 tick 호출
       await scheduler.tick();
 
+      // Then — running flag 로 즉시 return → claimPending 은 첫 tick 의 1 회만 호출됨
       expect(service.claimPending).toHaveBeenCalledTimes(1);
 
-      // 첫 tick 정리
+      // Cleanup — 첫 tick 정리하여 다음 테스트가 영향받지 않게
       resolveFirst([]);
       await jest.runAllTimersAsync();
       await firstTick;
     });
 
     it('Promise.allSettled — 한 작업 시뮬레이션 실패가 다른 작업 처리를 막지 않음', async () => {
+      // Given — 3 작업이 점유되어 있고, a 만 실패 분기로 진입하도록 random 시퀀스 고정
+      //         (allSettled 가 동시 시작하므로 random 소비 순서: 세 sleep 먼저, 그 뒤 세 failure check)
       const jobs = [makeJob({ id: 'a' }), makeJob({ id: 'b' }), makeJob({ id: 'c' })];
       service.claimPending.mockResolvedValue(jobs);
-      // 소비 순서: 세 sleep (a, b, c) → 세 failure check (a, b, c)
       random.next
         .mockReturnValueOnce(0) // a sleep
         .mockReturnValueOnce(0) // b sleep
@@ -175,10 +177,12 @@ describe('JobsScheduler', () => {
         .mockReturnValueOnce(0.5) // b 성공
         .mockReturnValueOnce(0.5); // c 성공
 
+      // When — tick 실행
       const promise = scheduler.tick();
       await jest.runAllTimersAsync();
       await promise;
 
+      // Then — a 실패에도 b·c 처리가 격리되어 모두 mark 호출됨
       expect(service.markFailed).toHaveBeenCalledWith('a');
       expect(service.markDone).toHaveBeenCalledWith('b');
       expect(service.markDone).toHaveBeenCalledWith('c');
