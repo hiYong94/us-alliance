@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { traceContext } from '../common/context/trace-context';
 import { LoggerService } from './logger.service';
 
 describe('LoggerService', () => {
@@ -81,6 +82,37 @@ describe('LoggerService', () => {
 
     expect(fs.readFileSync(path.join(tmpDir, '2026-05-10.log'), 'utf8')).toContain('before');
     expect(fs.readFileSync(path.join(tmpDir, '2026-05-11.log'), 'utf8')).toContain('after');
+  });
+
+  it('payload 에 traceId 없으면 AsyncLocalStorage 의 traceId 가 자동 주입된다', () => {
+    // Given — trace-context 안에서 traceId 가 set 되어 있음 (예: 스케줄러 tick · HTTP 요청 컨텍스트)
+    // When — payload 에 traceId 를 명시하지 않고 append 호출
+    traceContext.run({ traceId: 'auto-injected-id' }, () => {
+      logger.append({ type: 'scheduler', event: 'tick.start' });
+    });
+
+    // Then — 기록된 로그에 ALS 의 traceId 가 자동 포함됨
+    const today = new Date().toISOString().slice(0, 10);
+    const line = fs.readFileSync(path.join(tmpDir, `${today}.log`), 'utf8').trim();
+    expect((JSON.parse(line) as { traceId: string }).traceId).toBe('auto-injected-id');
+  });
+
+  it('payload 에 traceId 명시 시 ALS 가 있어도 payload 값을 우선한다', () => {
+    traceContext.run({ traceId: 'als-id' }, () => {
+      logger.append({ type: 'http', traceId: 'explicit-id' });
+    });
+
+    const today = new Date().toISOString().slice(0, 10);
+    const line = fs.readFileSync(path.join(tmpDir, `${today}.log`), 'utf8').trim();
+    expect((JSON.parse(line) as { traceId: string }).traceId).toBe('explicit-id');
+  });
+
+  it('ALS · payload 둘 다 없으면 traceId 필드가 출력에 포함되지 않는다', () => {
+    logger.append({ type: 'http' });
+
+    const today = new Date().toISOString().slice(0, 10);
+    const line = fs.readFileSync(path.join(tmpDir, `${today}.log`), 'utf8').trim();
+    expect((JSON.parse(line) as { traceId?: string }).traceId).toBeUndefined();
   });
 
   it('여러 append 가 같은 파일에 누적된다', () => {
