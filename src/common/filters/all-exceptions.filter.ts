@@ -2,7 +2,6 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from
 import { Request, Response } from 'express';
 import { isDomainException } from '../../jobs/exceptions/job.exceptions';
 import { LoggerService } from '../../logging/logger.service';
-import { getTraceId } from '../context/trace-context';
 import { ErrorResponse } from '../dto/error-response.dto';
 
 /**
@@ -16,7 +15,7 @@ import { ErrorResponse } from '../dto/error-response.dto';
  * 로깅:
  * - level 은 status 에 따라 (5xx: error / 4xx: warn)
  * - 본문 미로깅 (PII 회피)
- * - traceId 는 trace-context AsyncLocalStorage 에서 조회
+ * - traceId 는 LoggerService 가 trace-context AsyncLocalStorage 에서 자동 주입
  */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -50,7 +49,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
       path: request.url,
       status,
       code,
-      traceId: getTraceId(),
     });
 
     response.status(status).json(body);
