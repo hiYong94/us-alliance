@@ -93,6 +93,19 @@ describe('Jobs API (e2e)', () => {
       expect(updated.body.data).toMatchObject({ title: 'new', description: 'detail' });
     });
 
+    // GET /jobs/:id → 200 단건 응답
+    it('존재하는 PENDING 작업의 단건 조회는 data 래퍼로 200 을 반환한다', async () => {
+      const created = await request(server).post('/jobs').send({ title: 'fetch-me' });
+      const id = created.body.data.id;
+
+      const response = await request(server).get(`/jobs/${id}`).expect(200);
+      expect(response.body.data).toMatchObject({
+        id,
+        title: 'fetch-me',
+        status: 'PENDING',
+      });
+    });
+
     // PATCH cancel: true → deletedAt set, GET 시 404
     it('cancel:true PATCH 는 soft-delete 로 deletedAt 을 set 하고 후속 GET 에서 404 가 된다', async () => {
       const created = await request(server).post('/jobs').send({ title: 'to-cancel' });
