@@ -9,9 +9,9 @@
 
 ## 0. 사전 준비
 
-```bash
-cd /Users/hiyong/assignment/us-alliance
+> 이하 모든 명령은 **프로젝트 루트** (`package.json` 이 있는 디렉토리) 에서 실행한다.
 
+```bash
 # 의존성 (최초 1회)
 npm install
 
