@@ -191,6 +191,8 @@ type guard 로 코드를 단일 경로 추출한다.
 5. `title`/`description` 수정 시 `updatedAt` 갱신
 6. body 가 비었거나 알 수 없는 필드만 있으면 `400 VALIDATION_FAILED`
 7. mutex 안에서 검증·수정·write 를 모두 수행
+8. `description` 은 *내용 교체만* 지원한다 — `null` 로 명시 전송 시 `VALIDATION_FAILED` 응답.
+   기존 값을 비우려는 시도는 별도 정책이 필요하나 본 과제 범위에서는 다루지 않는다 (회고).
 
 **Response 200** — 단건 응답, 수정 후 상태
 
@@ -507,3 +509,5 @@ NestJS 의 cross-cutting 메커니즘에 비기능 관심사를 위임하여 컨
 - 인증 · 인가
 - 성능 부하 테스트 (`autocannon` 등)
 - W3C Trace Context (`traceparent` 헤더) 호환 — 현재는 단순 `X-Trace-Id` 만 수용
+- `description` 필드의 *null 클리어* 정책 — 현재는 내용 교체만 지원. PATCH 시 `null` 명시는
+  거부됨. 별도 액션(`clearDescription: true`) 또는 `@ValidateIf` 로 null 허용하는 안 검토

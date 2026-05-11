@@ -2,7 +2,6 @@ import { CallHandler, ExecutionContext } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { lastValueFrom, of, throwError } from 'rxjs';
 import { LoggerService } from '../../logging/logger.service';
-import { traceContext } from '../context/trace-context';
 import { LoggingInterceptor } from './logging.interceptor';
 
 describe('LoggingInterceptor', () => {
@@ -50,17 +49,6 @@ describe('LoggingInterceptor', () => {
     const payload = logger.append.mock.calls[0][0];
     expect(payload.durationMs).toEqual(expect.any(Number));
     expect(payload.durationMs as number).toBeGreaterThanOrEqual(0);
-  });
-
-  it('현재 요청의 traceId 를 컨텍스트에서 조회해 포함한다', async () => {
-    const ctx = makeContext('GET', '/jobs', 200);
-    const next: CallHandler = { handle: () => of({}) };
-
-    await traceContext.run({ traceId: 'tid-123' }, async () => {
-      await lastValueFrom(interceptor.intercept(ctx, next));
-    });
-
-    expect(logger.append).toHaveBeenCalledWith(expect.objectContaining({ traceId: 'tid-123' }));
   });
 
   it('error 발생 시 logger.append 를 호출하지 않는다 (Filter 책임)', async () => {

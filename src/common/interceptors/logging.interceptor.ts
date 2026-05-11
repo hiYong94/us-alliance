@@ -2,7 +2,6 @@ import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nes
 import { Request, Response } from 'express';
 import { Observable, tap } from 'rxjs';
 import { LoggerService } from '../../logging/logger.service';
-import { getTraceId } from '../context/trace-context';
 
 /**
  * 성공 HTTP 요청 · 응답 로깅 인터셉터
@@ -25,13 +24,13 @@ export class LoggingInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap(() => {
         const res = http.getResponse<Response>();
+        // traceId 는 LoggerService 가 trace-context ALS 에서 자동 주입
         this.logger.append({
           type: 'http',
           method: req.method,
           path: req.url,
           status: res.statusCode,
           durationMs: Date.now() - start,
-          traceId: getTraceId(),
         });
       }),
     );

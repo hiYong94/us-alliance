@@ -2,7 +2,6 @@ import { ArgumentsHost, BadRequestException, HttpException, HttpStatus } from '@
 import { Request, Response } from 'express';
 import { JobNotFoundException } from '../../jobs/exceptions/job.exceptions';
 import { LoggerService } from '../../logging/logger.service';
-import { traceContext } from '../context/trace-context';
 import { AllExceptionsFilter } from './all-exceptions.filter';
 
 describe('AllExceptionsFilter', () => {
@@ -109,13 +108,5 @@ describe('AllExceptionsFilter', () => {
     expect(logger.append).toHaveBeenCalledWith(
       expect.objectContaining({ level: 'error', status: 500 }),
     );
-  });
-
-  it('현재 컨텍스트의 traceId 를 로그에 포함한다', () => {
-    traceContext.run({ traceId: 'tid-error' }, () => {
-      filter.catch(new JobNotFoundException('x'), makeHost('GET', '/x'));
-    });
-
-    expect(logger.append).toHaveBeenCalledWith(expect.objectContaining({ traceId: 'tid-error' }));
   });
 });
