@@ -40,28 +40,7 @@ npm run build         # 빌드 그린
 
 ---
 
-## 2. 자동 부팅 검증
-
-```bash
-bash .claude/skills/boot-verify/scripts/boot-verify.sh
-```
-
-**기대 출력**
-
-```
-✓ 부팅 성공
-✓ /docs 200
-✓ POST /jobs 201 + envelope + X-Trace-Id
-✓ GET /jobs 200 + { data, meta }
-✓ PATCH 미존재 404 JOB_NOT_FOUND
-✓ logs/<오늘>.log 에 http 항목 3건
-```
-
-`jobs.json` 자동 백업·복원, port 3000 자동 정리.
-
----
-
-## 3. 수동 탐색 — Swagger UI
+## 2. 수동 탐색 — Swagger UI
 
 ```bash
 npm run start:dev
@@ -79,7 +58,7 @@ npm run start:dev
 
 ---
 
-## 4. 시나리오 A — 정상 플로우
+## 3. 시나리오 A — 정상 플로우
 
 샘플 데이터 위에서 작업 라이프사이클을 따라간다.
 
@@ -95,7 +74,7 @@ npm run start:dev
 
 ---
 
-## 5. 시나리오 B — 검색 · 페이지네이션
+## 4. 시나리오 B — 검색 · 페이지네이션
 
 샘플 jobs.json 의 6건 (soft-deleted 1건 포함) 위에서.
 
@@ -110,7 +89,7 @@ npm run start:dev
 
 ---
 
-## 6. 시나리오 C — 에러 응답
+## 5. 시나리오 C — 에러 응답
 
 도메인 에러 코드와 응답 형식 일관성 확인.
 
@@ -131,7 +110,7 @@ npm run start:dev
 
 ---
 
-## 7. 시나리오 D — 동시성 (본 과제 핵심)
+## 6. 시나리오 D — 동시성 (본 과제 핵심)
 
 ### D-1. 동시 PATCH (다른 필드 — 두 변경 모두 보존)
 
@@ -171,7 +150,7 @@ wait
 
 ---
 
-## 8. 시나리오 E — 스케줄러 관측
+## 7. 시나리오 E — 스케줄러 관측
 
 ```bash
 # 깨끗한 상태에서 시작
@@ -195,7 +174,7 @@ npm run start:dev
 
 ---
 
-## 9. 로깅 검증
+## 8. 로깅 검증
 
 ```bash
 ls logs/                                  # 일자별 파일 존재
@@ -212,7 +191,7 @@ cat logs/$(date +%Y-%m-%d).log | head -20 | jq .   # JSON Lines 파싱 가능
 
 ---
 
-## 10. 정리
+## 9. 정리
 
 ```bash
 # 서버 종료 후

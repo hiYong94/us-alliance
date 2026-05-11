@@ -19,7 +19,6 @@ npm run start:dev       # http://localhost:3000  + Swagger /docs
 | `npm run test:e2e`                                       | e2e 17 케이스                          |
 | `npm run lint`                                           | typescript-eslint + prettier 자동 수정 |
 | `npm run build`                                          | dist/ 생성                             |
-| `bash .claude/skills/boot-verify/scripts/boot-verify.sh` | 부팅 자동 검증 (6 항목 5초 이내)       |
 
 회귀 게이트 한 줄: `npm run lint && npm test && npm run test:e2e && npm run build`
 
@@ -385,7 +384,6 @@ _멀티 프로세스 환경에선 무력하다_. 동시성 제어가 *환경에 
 
 ```
 .claude/skills/
-├── boot-verify/    부팅 + 6 엔드포인트 curl probe + 정리 자동화
 ├── commit-draft/   git-convention.md 적용 커밋 메시지 초안
 └── test-audit/     5 기준 (독립성 · 내구성 · 핵심 · G-W-T · 간결성) 테스트 감사
 ```
