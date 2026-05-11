@@ -28,7 +28,7 @@ rm -rf logs
 ## 1. 자동 게이트
 
 ```bash
-npm test              # 단위 66 케이스
+npm test              # 단위 64 케이스
 npm run test:e2e      # e2e 17 케이스
 npm run lint          # error 0 (warning 만 허용)
 npm run build         # 빌드 그린
